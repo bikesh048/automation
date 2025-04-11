@@ -131,11 +131,24 @@ resource "aws_iam_role_policy" "codepipeline" {
         Resource = "*"
       },
       {
+        Effect = "Allow",
+        Action = "ecs:*",
+        Resource = "*"
+      },
+      {
         Effect = "Allow"
         Action = [
           "codestar-connections:UseConnection"
         ]
         Resource = var.connection_arn
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "codestar-connections:GetConnection",
+          "codestar-connections:ListConnections"
+        ],
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -153,12 +166,38 @@ resource "aws_iam_role_policy" "codepipeline" {
           "ecs:DescribeTasks",
           "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService"
+          "ecs:UpdateService",
+          "ecs:ListServices",
+          "ecs:DescribeClusters",
+          "ecs:RunTask",
+          "ecs:StopTask",
+          "ecs:StartTask"
         ]
-        Resource = "*"
+        Resource = [
+          "arn:aws:ecs:*:*:service/${var.ecs_cluster_name}/${var.ecs_service_name}",
+          "arn:aws:ecs:*:*:task-definition/*",
+          "arn:aws:ecs:*:*:cluster/${var.ecs_cluster_name}"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = "*",
+        Condition = {
+          StringLike = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "codepipeline_ecs_deploy" {
+  role       = aws_iam_role.codepipeline.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
 }
 
 # S3 Bucket for CodePipeline Artifacts

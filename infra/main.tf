@@ -29,6 +29,11 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "codestar_connection_arn" {
+  description = "ARN of the CodeStar Connections connection"
+  default = "arn:aws:codeconnections:us-east-1:780147879176:connection/4b64ab72-a1fa-4604-a5dd-e1880c46015b"
+}
+
 
 # VPC Configuration
 resource "aws_vpc" "main" {
@@ -286,6 +291,8 @@ resource "aws_lb_listener" "app" {
 # AWS Account ID
 data "aws_caller_identity" "current" {}
 
+
+# remove
 # AWS Connections
 resource "aws_codestarconnections_connection" "github" {
   count         = var.cicd_provider == "codepipeline" ? 1 : 0
@@ -293,10 +300,16 @@ resource "aws_codestarconnections_connection" "github" {
   provider_type = "GitHub"
 }
 
+# remove
+output "codestar_connection_arn" {
+  value = "arn:aws:codeconnections:us-east-1:780147879176:connection/4b64ab72-a1fa-4604-a5dd-e1880c46015b"
+  description = "ARN of the CodeStar Connections connection"
+}
+
 # CI/CD components based on provider choice
 # CodePipeline Module (conditionally created)
 module "codepipeline" {
-  source       = "./modules/codepipeline"
+  source       = "./modules"
   count        = var.cicd_provider == "codepipeline" ? 1 : 0
   
   app_name     = var.app_name
@@ -306,7 +319,7 @@ module "codepipeline" {
   ecs_service_name = aws_ecs_service.app.name
   github_repo  = var.github_repo
   github_branch = var.github_branch
-  connection_arn = aws_codestarconnections_connection.github[0].arn
+  connection_arn = var.codestar_connection_arn
 }
 
 # Create IAM User for external CI/CD if not using CodePipeline
